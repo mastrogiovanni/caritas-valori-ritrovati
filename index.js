@@ -1,5 +1,6 @@
 const { isIn } = require("class-validator");
 const fs = require("fs")
+const ObjectsToCsv = require('objects-to-csv');
 
 function CSVToArray(strData, strDelimiter) {
     // Check to see if the delimiter is defined. If not,
@@ -128,7 +129,7 @@ async function getDatabase() {
     return result;
 }
 
-const COLUMNS = "Handle,Title,Body (HTML),Vendor,Tags,Published,Option1 Name,Option1 Value,Option2 Name,Option2 Value,Option3 Name,Option3 Value,Variant SKU,Variant Grams,Variant Inventory Tracker,Variant Inventory Qty,Variant Inventory Policy,Variant Fulfillment Service,Variant Price,Variant Compare At Price,Variant Requires Shipping,Variant Taxable,Variant Barcode,Image Src,Image Position,Image Alt Text,Gift Card,SEO Title,SEO Description,Google Shopping / Google Product Category,Google Shopping / Gender,Google Shopping / Age Group,Google Shopping / MPN,Google Shopping / AdWords Grouping,Google Shopping / AdWords Labels,Google Shopping / Condition,Google Shopping / Custom Product,Google Shopping / Custom Label 0,Google Shopping / Custom Label 1,Google Shopping / Custom Label 2,Google Shopping / Custom Label 3,Google Shopping / Custom Label 4,Variant Image,Variant Weight Unit,Variant Tax Code,Cost per item,Status,Standard Product Type,Custom Product Type".split(",");
+const COLUMNS = "Cost per item,Handle,Title,Body (HTML),Vendor,Tags,Published,Option1 Name,Option1 Value,Option2 Name,Option2 Value,Option3 Name,Option3 Value,Variant SKU,Variant Grams,Variant Inventory Tracker,Variant Inventory Qty,Variant Inventory Policy,Variant Fulfillment Service,Variant Price,Variant Compare At Price,Variant Requires Shipping,Variant Taxable,Variant Barcode,Image Src,Image Position,Image Alt Text,Gift Card,SEO Title,SEO Description,Google Shopping / Google Product Category,Google Shopping / Gender,Google Shopping / Age Group,Google Shopping / MPN,Google Shopping / AdWords Grouping,Google Shopping / AdWords Labels,Google Shopping / Condition,Google Shopping / Custom Product,Google Shopping / Custom Label 0,Google Shopping / Custom Label 1,Google Shopping / Custom Label 2,Google Shopping / Custom Label 3,Google Shopping / Custom Label 4,Variant Image,Variant Weight Unit,Variant Tax Code,Status,Standard Product Type,Custom Product Type".split(",");
 
 function isInt(n){
     return Number(n) === n && n % 1 === 0;
@@ -139,21 +140,30 @@ function isFloat(n){
 }
 
 async function adaptToShopify(database) {
-    let result = COLUMNS.join(",") + "\r\n";
+    // let result = COLUMNS.join(",") + "\r\n";
+
+    let result = [];
     for (let key of Object.keys(database)) {
+
+        // console.log(database[key])
+
         let shopifyItem = {}
         shopifyItem['Handle'] = key;
         shopifyItem['Title'] = database[key]['Descrizione'];
-        shopifyItem['Custom product type'] = database[key]['Classe Merc.'];
+        shopifyItem['Custom Product Type'] = database[key]['Classe Merc.'];
         shopifyItem['Published'] = "TRUE";
+        shopifyItem['Variant Inventory Qty'] = '' + parseInt(database[key]['Giacenza']);
         
-        if (isInt(database[key]['Giacenza'])) {
-            shopifyItem['Variant Inventory Qty'] = database[key]['Giacenza'];
-        }
+        let price = database[key]['PPC'];
+        price = parseFloat(('' + price).replace(',', '.'));
+        shopifyItem['Variant Price'] = '' + price;
 
-        if (isFloat(database[key]['PPC'])) {
-            shopifyItem['Variant Price'] = database[key]['PPC'];
-        }
+        shopifyItem['Variant Inventory Policy'] = 'deny'
+        shopifyItem['Variant Fulfillment Service'] = 'manual'
+
+        shopifyItem['SEO Title'] = database[key]['Descrizione'];
+        shopifyItem['SEO Description'] = database[key]['Descrizione'];
+
 
         if (database[key]['image']) {
             shopifyItem['Image Src'] = database[key]['image']
@@ -161,6 +171,14 @@ async function adaptToShopify(database) {
         }
         shopifyItem['Status'] = 'active';
 
+        for (let column of COLUMNS) {
+            if (!shopifyItem[column]) {
+                shopifyItem[column] = ''
+            }
+        }
+
+        result.push(shopifyItem);
+        /*
         let row = "";
         for (let column of COLUMNS) {
             if (shopifyItem[column]) {
@@ -172,8 +190,9 @@ async function adaptToShopify(database) {
         row = row.slice(0, row.length - 1) + "\r\n"
 
         result += row;
+        */
     }
-    return result;
+    return new ObjectsToCsv(result).toString();
 }
 
 (async () => {
