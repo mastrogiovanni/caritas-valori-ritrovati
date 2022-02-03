@@ -6,3 +6,11 @@ order to update the store you need to insert in the `data/` directory:
 * a imgs/ (with products names)
 
 Imgs directory is needed in order to update the list of product with existing images.
+
+## How to run
+
+You can do:
+
+```
+docker run -v $(pwd)/data:/data mastrogiovanni/caritas-valori-ritrovati:latest
+```

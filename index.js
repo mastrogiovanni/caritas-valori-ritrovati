@@ -202,7 +202,7 @@ async function adaptToShopify(database) {
 
 function usage() {
     console.log("Example:")
-    console.log("docker run -v $(pwd)/data:/data mastrogiovanni/caritas:latest")
+    console.log("docker run -v $(pwd)/data:/data mastrogiovanni/caritas-valori-ritrovati:latest")
     console.log("The software espect in current 'data' subdir the following:")
     console.log("giacenza.csv (Giacenza file)")
     console.log("imgs (A directory containing images)");
