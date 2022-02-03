@@ -2,6 +2,9 @@ const { isIn } = require("class-validator");
 const fs = require("fs")
 const ObjectsToCsv = require('objects-to-csv');
 
+const rootDir = "/data";
+const BASE_IMAGE = "https://sad-turing-785048.netlify.app/imgs/";
+
 function CSVToArray(strData, strDelimiter) {
     // Check to see if the delimiter is defined. If not,
     // then default to comma.
@@ -88,14 +91,14 @@ function toObjectList(array) {
 }
 
 async function loadData() {
-    let data = fs.readFileSync("./Giacenza.xlsx - Dati.csv");
+    let data = fs.readFileSync(rootDir + "/giacenza.csv");
     return toObjectList(CSVToArray(data.toString(), ",")).slice(1);
 }
 
 async function loadImages() {
     let response = {}
 
-    const files = fs.readdirSync("./imgs")
+    const files = fs.readdirSync(rootDir + "/imgs")
 
     files.forEach(file => {
         let code = file.slice(0, 6);
@@ -105,8 +108,6 @@ async function loadImages() {
 
     return response;
 }
-
-const BASE_IMAGE = "https://sad-turing-785048.netlify.app/imgs/";
 
 async function getDatabase() {
     const data = await loadData();
@@ -150,6 +151,10 @@ async function adaptToShopify(database) {
         let shopifyItem = {}
         shopifyItem['Handle'] = key;
         shopifyItem['Title'] = database[key]['Descrizione'];
+        
+        shopifyItem['Option1 Name'] = 'Title';
+        shopifyItem['Option1 Value'] = 'Default Title';
+
         shopifyItem['Custom Product Type'] = database[key]['Classe Merc.'];
         shopifyItem['Published'] = "TRUE";
         shopifyItem['Variant Inventory Qty'] = '' + parseInt(database[key]['Giacenza']);
@@ -195,24 +200,34 @@ async function adaptToShopify(database) {
     return new ObjectsToCsv(result).toString();
 }
 
+function usage() {
+    console.log("Example:")
+    console.log("docker run -v $(pwd)/data:/data mastrogiovanni/caritas:latest")
+    console.log("The software espect in current 'data' subdir the following:")
+    console.log("giacenza.csv (Giacenza file)")
+    console.log("imgs (A directory containing images)");
+}
+
 (async () => {
+
+    if (!fs.existsSync(rootDir + "/giacenza.csv")) {
+        usage();
+        return;
+    }
+
+    if (!fs.statSync(rootDir + "/imgs").isDirectory()) {
+        usage();
+        return;
+    }
+
     let database = await getDatabase();
 
     let result = await adaptToShopify(database);
 
     // console.log(database);
 
-    console.log(result);
+    fs.writeFileSync(rootDir + "/import.csv", result)
 
-    /*
-    let classList = new Set();
-    classList.add("-");
-    const codes = Object.keys(database);
-    codes.forEach((code) => {
-        classList.add(database[code]["Classe Merc."]);
-    });
-    classes = Array.from(classList).sort();
-    console.log(classes);
-    */
+    console.log("Result are saved in file 'import.csv'");
 
 })();
