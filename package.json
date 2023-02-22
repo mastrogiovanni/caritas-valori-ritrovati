@@ -9,7 +9,7 @@
   "author": "mastrogiovanni <michele.mastrogiovanni@gmail.com>",
   "license": "ISC",
   "dependencies": {
-    "class-validator": "^0.13.2",
+    "class-validator": "^0.14.0",
     "objects-to-csv": "^1.3.6"
   }
 }
