@@ -2,7 +2,7 @@ const { isIn } = require("class-validator");
 const fs = require("fs")
 const ObjectsToCsv = require('objects-to-csv');
 
-const rootDir = "/data";
+const rootDir = "data";
 const BASE_IMAGE = "https://sad-turing-785048.netlify.app/imgs/";
 
 function CSVToArray(strData, strDelimiter) {
@@ -90,9 +90,9 @@ function toObjectList(array) {
     });
 }
 
-async function loadData() {
-    let data = fs.readFileSync(rootDir + "/giacenza.csv");
-    return toObjectList(CSVToArray(data.toString(), ",")).slice(1);
+async function loadData(fileName, delim) {
+    let data = fs.readFileSync(rootDir + "/" + fileName);
+    return toObjectList(CSVToArray(data.toString(), delim)).slice(1);
 }
 
 async function loadImages() {
@@ -109,12 +109,13 @@ async function loadImages() {
     return response;
 }
 
-async function getDatabase() {
-    const data = await loadData();
+async function getDatabase(fileName, delim) {
+    const data = await loadData(fileName, delim);
     const images = await loadImages();
     let result = {};
     for (let item of data) {
         let id = item["Cod. Art."];
+        console.log(id)
         if (images[id]) {
             let image = encodeURI(BASE_IMAGE + images[id]);
             result[id] = {
@@ -157,9 +158,9 @@ async function adaptToShopify(database) {
 
         shopifyItem['Custom Product Type'] = database[key]['Classe Merc.'];
         shopifyItem['Published'] = "TRUE";
-        shopifyItem['Variant Inventory Qty'] = '' + parseInt(database[key]['Giacenza']);
+        shopifyItem['Variant Inventory Qty'] = '' + parseInt(database[key]['Esistenza']);
         
-        let price = database[key]['PPC'];
+        let price = database[key]['Listino'];
         price = parseFloat(('' + price).replace(',', '.'));
         shopifyItem['Variant Price'] = '' + price;
 
@@ -210,6 +211,19 @@ function usage() {
 
 (async () => {
 
+    /*
+    let database = await getDatabase("giacenza.csv", ";");
+
+    let old = await getDatabase("giacenza-31032022.csv", ",");
+
+    for (let key of Object.keys(database)) {
+        // console.log(key)
+        if (old[key] && old[key]['PPC'] !== database[key]['PPC']) {
+            console.log(key)
+        }
+    }
+    */
+
     if (!fs.existsSync(rootDir + "/giacenza.csv")) {
         usage();
         return;
@@ -220,11 +234,11 @@ function usage() {
         return;
     }
 
-    let database = await getDatabase();
-
-    let result = await adaptToShopify(database);
+    let database = await getDatabase("giacenza.csv", ";");
 
     // console.log(database);
+
+    let result = await adaptToShopify(database);
 
     fs.writeFileSync(rootDir + "/import.csv", result)
 
